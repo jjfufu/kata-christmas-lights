@@ -2,4 +2,6 @@
 
 I'm training TDD with Kata
 
-https://kata-log.rocks/christmas-lights-kata (only part one)
+https://kata-log.rocks/christmas-lights-kata (complete)
+
+Check commit to see different parts

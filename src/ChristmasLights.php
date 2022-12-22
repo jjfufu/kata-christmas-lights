@@ -4,19 +4,16 @@ namespace Kata;
 
 class ChristmasLights
 {
-    public const LIGHT_STATUS_ON = 'ON';
-    public const LIGHT_STATUS_OFF = 'OFF';
-    public const LIGHT_STATUSES = [
-        self::LIGHT_STATUS_ON,
-        self::LIGHT_STATUS_OFF,
+    public const BRIGHTNESS_INCREASE = 'INCREASE';
+    public const BRIGHTNESS_DECREASE = 'DECREASE';
+    public const BRIGHTNESS_INCREASE_MORE = 'INCREASE_MORE';
+    public const BRIGHTNESS_ACTIONS = [
+        self::BRIGHTNESS_INCREASE,
+        self::BRIGHTNESS_DECREASE,
+        self::BRIGHTNESS_INCREASE_MORE
     ];
 
-    public const LIGHT_TOGGLE = 'TOGGLE';
-    public const LIGHT_ACTIONS = [
-        self::LIGHT_STATUS_ON,
-        self::LIGHT_STATUS_OFF,
-        self::LIGHT_TOGGLE
-    ];
+    public const BRIGHTNESS_START = 0;
 
     private array $grid = [];
 
@@ -33,7 +30,7 @@ class ChristmasLights
         for ($i = 0; $i < $this->rowsNumber; $i++) {
             $row = [];
             for ($j = 0; $j < $this->columnsNumber; $j++) {
-                $row[] = self::LIGHT_STATUS_OFF;
+                $row[] = self::BRIGHTNESS_START;
             }
             $this->grid[] = $row;
         }
@@ -54,14 +51,23 @@ class ChristmasLights
         return $this->grid;
     }
 
-    public function setLightStatus(string $status, Coordinates $coordinates): void
+    public function setLightBrightness(string $action, Coordinates $coordinates): void
     {
-        $this->validateLightStatus($status);
+        $this->validateLightAction($action);
 
-        $this->grid[$coordinates->getX()][$coordinates->getY()] = $status;
+        $brightness = $this->getLightBrightness($coordinates);
+        if ($brightness === 0 && $action === self::BRIGHTNESS_DECREASE) {
+            return;
+        }
+
+        $this->grid[$coordinates->getX()][$coordinates->getY()] = match ($action) {
+            self::BRIGHTNESS_INCREASE => ++$brightness,
+            self::BRIGHTNESS_DECREASE => --$brightness,
+            self::BRIGHTNESS_INCREASE_MORE => $brightness + 2
+        };
     }
 
-    public function getLightStatus(Coordinates $coordinates): string
+    public function getLightBrightness(Coordinates $coordinates): int
     {
         if ($coordinates->getX() > $this->getRowsNumber() || $coordinates->getY() > $this->getColumnsNumber()) {
             throw new OuterRangeException();
@@ -70,59 +76,31 @@ class ChristmasLights
         return $this->grid[$coordinates->getX()][$coordinates->getY()];
     }
 
-    public function countStatus(string $status): int
+    public function getGridBrightness(): int
     {
-        $this->validateLightStatus($status);
-
-        $counter = 0;
+        $totalBrightness = 0;
         foreach ($this->getGrid() as $row) {
-            foreach ($row as $state) {
-                if ($state === $status) {
-                    $counter++;
-                }
+            foreach ($row as $brightness) {
+                $totalBrightness += $brightness;
             }
         }
 
-        return $counter;
+        return $totalBrightness;
     }
 
-    public function illuminate(string $action, Coordinates $from, Coordinates $to): int
+    public function illuminate(string $action, Coordinates $from, Coordinates $to): void
     {
         $this->validateLightAction($action);
-
-        $stateChangedCounter = 0;
         for ($rowIndex = $from->getX(); $rowIndex <= $to->getX(); $rowIndex++) {
             for ($columnIndex = $from->getY(); $columnIndex <= $to->getY(); $columnIndex++) {
-                $coordinates = new Coordinates($rowIndex, $columnIndex);
-
-                $currentStatus = $this->getLightStatus($coordinates);
-                $newStatus = $action;
-
-                if ($action === self::LIGHT_TOGGLE) {
-                    $newStatus = $currentStatus === self::LIGHT_STATUS_ON ? self::LIGHT_STATUS_OFF : self::LIGHT_STATUS_ON;
-                }
-
-                if ($currentStatus !== $newStatus) {
-                    $this->setLightStatus($newStatus, $coordinates);
-                }
-
-                $stateChangedCounter++;
+                $this->setLightBrightness($action, new Coordinates($rowIndex, $columnIndex));
             }
-        }
-
-        return $stateChangedCounter;
-    }
-
-    private function validateLightStatus(string $status): void
-    {
-        if (!in_array($status, self::LIGHT_STATUSES, true)) {
-            throw new InvalidLightStatusException(sprintf('%s status is invalid', $status));
         }
     }
 
     private function validateLightAction(string $action): void
     {
-        if (!in_array($action, self::LIGHT_ACTIONS, true)) {
+        if (!in_array($action, self::BRIGHTNESS_ACTIONS, true)) {
             throw new InvalidLightActionException(sprintf('%s action is invalid', $action));
         }
     }
